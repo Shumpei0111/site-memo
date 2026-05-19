@@ -1,0 +1,11 @@
+{
+  "manifest_version": 3,
+  "name": "Design Memo",
+  "version": "1.0.0",
+  "description": "デザイン観察メモをURLと紐づけて保存する",
+  "permissions": ["storage", "tabs", "activeTab"],
+  "action": {
+    "default_popup": "popup.html",
+    "default_title": "Design Memo"
+  }
+}

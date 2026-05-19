@@ -1,0 +1,79 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Design Memo</title>
+  <link rel="stylesheet" href="popup.css">
+</head>
+<body>
+  <!-- 一覧画面 -->
+  <div id="view-list" class="view">
+    <header class="header">
+      <span class="logo">✦ memo</span>
+      <div class="header-actions">
+        <button id="btn-export-csv" class="btn-icon" title="CSVエクスポート">CSV</button>
+        <button id="btn-export-md" class="btn-icon" title="Markdownエクスポート">MD</button>
+        <button id="btn-new" class="btn-primary">+ 新規</button>
+      </div>
+    </header>
+    <div class="search-wrap">
+      <input id="search-input" type="text" class="search" placeholder="検索...">
+    </div>
+    <div id="memo-list" class="memo-list">
+      <div class="empty-state">メモはまだありません</div>
+    </div>
+  </div>
+
+  <!-- 詳細/編集画面 -->
+  <div id="view-detail" class="view hidden">
+    <header class="header">
+      <button id="btn-back-detail" class="btn-back">← 一覧</button>
+      <button id="btn-delete" class="btn-danger">削除</button>
+    </header>
+    <div class="form-wrap">
+      <div class="field">
+        <label class="label">URL</label>
+        <input id="detail-url" type="text" class="input url-input" placeholder="https://...">
+      </div>
+      <div class="field">
+        <label class="label">メモ</label>
+        <textarea id="detail-body" class="textarea" placeholder="気づき・数値・なぜいいかを書く..."></textarea>
+      </div>
+      <div class="field">
+        <label class="label">タグ <span class="hint">スペース区切り</span></label>
+        <input id="detail-tags" type="text" class="input" placeholder="余白 タイポグラフィ カラー">
+      </div>
+      <div class="meta-row">
+        <span id="detail-date" class="meta-date"></span>
+      </div>
+      <button id="btn-save-detail" class="btn-primary full">保存</button>
+    </div>
+  </div>
+
+  <!-- 新規入力画面 -->
+  <div id="view-new" class="view hidden">
+    <header class="header">
+      <button id="btn-back-new" class="btn-back">← 一覧</button>
+      <span class="header-title">新規メモ</span>
+    </header>
+    <div class="form-wrap">
+      <div class="field">
+        <label class="label">URL <span class="hint">現在のページを自動取得</span></label>
+        <input id="new-url" type="text" class="input url-input" placeholder="https://...">
+      </div>
+      <div class="field">
+        <label class="label">メモ</label>
+        <textarea id="new-body" class="textarea" placeholder="気づき・数値・なぜいいかを書く...&#10;&#10;例）&#10;余白: padding 48px 横, 24px 縦&#10;タイポ: H1=40px/Bold, Body=16px/Regular&#10;なぜいい: 余白が広くて視線の休憩場所がある"></textarea>
+      </div>
+      <div class="field">
+        <label class="label">タグ <span class="hint">スペース区切り</span></label>
+        <input id="new-tags" type="text" class="input" placeholder="余白 タイポグラフィ カラー">
+      </div>
+      <button id="btn-save-new" class="btn-primary full">保存</button>
+    </div>
+  </div>
+
+  <script src="popup.js"></script>
+</body>
+</html>

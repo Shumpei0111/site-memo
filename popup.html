@@ -14,6 +14,7 @@
       <div class="header-actions">
         <button id="btn-export-csv" class="btn-icon" title="CSVエクスポート">CSV</button>
         <button id="btn-export-md" class="btn-icon" title="Markdownエクスポート">MD</button>
+        <button id="btn-settings" class="btn-icon" title="設定">設定</button>
         <button id="btn-new" class="btn-primary">+ 新規</button>
       </div>
     </header>
@@ -34,7 +35,10 @@
     <div class="form-wrap">
       <div class="field">
         <label class="label">URL</label>
-        <input id="detail-url" type="text" class="input url-input" placeholder="https://...">
+        <div class="url-input-row">
+          <input id="detail-url" type="text" class="input url-input" placeholder="https://...">
+          <button id="btn-open-detail-url" type="button" class="btn-open-link" title="ページを開く">↗</button>
+        </div>
       </div>
       <div class="field">
         <label class="label">メモ</label>
@@ -48,6 +52,21 @@
         <span id="detail-date" class="meta-date"></span>
       </div>
       <button id="btn-save-detail" class="btn-primary full">保存</button>
+    </div>
+  </div>
+
+  <!-- 設定画面 -->
+  <div id="view-settings" class="view hidden">
+    <header class="header">
+      <button id="btn-back-settings" class="btn-back">← 一覧</button>
+      <span class="header-title">設定</span>
+    </header>
+    <div class="settings-wrap">
+      <label class="setting-row">
+        <span class="setting-label">新規作成時にフォーカスが外れたら自動保存</span>
+        <input id="setting-autosave-new" type="checkbox" class="toggle">
+      </label>
+      <p class="setting-desc">ONのとき、新規メモ画面で入力欄からフォーカスが外れると本文があれば自動保存します。</p>
     </div>
   </div>
 

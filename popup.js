@@ -2,10 +2,13 @@
 let memos = [];
 let currentUrl = "";
 let editingId = null;
+let newDraftId = null;
+let settings = { autosaveNewOnBlur: false };
 
 // ===== INIT =====
 document.addEventListener("DOMContentLoaded", async () => {
   await loadMemos();
+  await loadSettings();
   await getCurrentUrl();
   initEvents();
   autoRoute();
@@ -24,6 +27,23 @@ async function loadMemos() {
 async function saveMemos() {
   return new Promise((resolve) => {
     chrome.storage.local.set({ memos }, resolve);
+  });
+}
+
+async function loadSettings() {
+  return new Promise((resolve) => {
+    chrome.storage.local.get(["settings"], (result) => {
+      settings = { autosaveNewOnBlur: false, ...result.settings };
+      const toggle = document.getElementById("setting-autosave-new");
+      if (toggle) toggle.checked = settings.autosaveNewOnBlur;
+      resolve();
+    });
+  });
+}
+
+async function saveSettings() {
+  return new Promise((resolve) => {
+    chrome.storage.local.set({ settings }, resolve);
   });
 }
 
@@ -98,7 +118,10 @@ function renderList(filter = "") {
       const domain = getDomain(m.url);
       return `
         <div class="memo-item ${isActive ? "active" : ""}" data-id="${m.id}">
-          <div class="memo-item-url">${domain}</div>
+          <div class="memo-item-head">
+            <div class="memo-item-url">${escHtml(domain)}</div>
+            <button type="button" class="btn-open-link" data-id="${m.id}" title="ページを開く">↗</button>
+          </div>
           <div class="memo-item-body">${escHtml(m.body)}</div>
           ${tags ? `<div class="memo-item-tags">${tags}</div>` : ""}
           <div class="memo-item-date">${date}</div>
@@ -109,6 +132,14 @@ function renderList(filter = "") {
 
   list.querySelectorAll(".memo-item").forEach((el) => {
     el.addEventListener("click", () => openDetail(el.dataset.id));
+  });
+
+  list.querySelectorAll(".btn-open-link").forEach((btn) => {
+    btn.addEventListener("click", (e) => {
+      e.stopPropagation();
+      const memo = memos.find((m) => m.id === btn.dataset.id);
+      if (memo) navigateToUrl(memo.url);
+    });
   });
 }
 
@@ -130,10 +161,18 @@ function openDetail(id) {
 
 // ===== NEW =====
 function openNew() {
+  newDraftId = null;
   document.getElementById("new-url").value = currentUrl;
   document.getElementById("new-body").value = "";
   document.getElementById("new-tags").value = "";
   showView("new");
+}
+
+// ===== SETTINGS =====
+function openSettings() {
+  document.getElementById("setting-autosave-new").checked =
+    settings.autosaveNewOnBlur;
+  showView("settings");
 }
 
 // ===== SAVE =====
@@ -178,28 +217,58 @@ async function saveDetail(silent = false) {
   }
 }
 
-async function saveNew() {
+// silent=true のとき: bodyが空なら何もしない、トーストも出さない（autosave用）
+async function saveNew(silent = false) {
   const url = document.getElementById("new-url").value.trim();
   const body = document.getElementById("new-body").value.trim();
   const tags = parseTags(document.getElementById("new-tags").value);
 
   if (!body) {
-    showToast("本文を入力してください");
+    if (!silent) showToast("本文を入力してください");
     return;
   }
 
-  const memo = {
-    id: crypto.randomUUID(),
-    url: url || currentUrl,
-    body,
-    tags,
-    createdAt: Date.now(),
-    updatedAt: Date.now(),
-  };
+  const draftId = newDraftId;
+  const existingIdx = draftId ? memos.findIndex((m) => m.id === draftId) : -1;
 
-  memos.push(memo);
+  if (existingIdx !== -1) {
+    const prev = memos[existingIdx];
+    if (
+      prev.url === (url || currentUrl) &&
+      prev.body === body &&
+      (prev.tags || []).join(" ") === tags.join(" ")
+    ) {
+      return;
+    }
+    memos[existingIdx] = {
+      ...prev,
+      url: url || currentUrl,
+      body,
+      tags,
+      updatedAt: Date.now(),
+    };
+  } else {
+    const memo = {
+      id: crypto.randomUUID(),
+      url: url || currentUrl,
+      body,
+      tags,
+      createdAt: Date.now(),
+      updatedAt: Date.now(),
+    };
+    newDraftId = memo.id;
+    memos.push(memo);
+  }
+
   await saveMemos();
+
+  if (silent) {
+    showToast("自動保存しました");
+    return;
+  }
+
   showToast("保存しました");
+  newDraftId = null;
   showView("list");
   renderList();
 }
@@ -302,6 +371,22 @@ function initEvents() {
     renderList(e.target.value.trim());
   });
 
+  // 設定
+  document.getElementById("btn-settings").addEventListener("click", openSettings);
+  document
+    .getElementById("btn-back-settings")
+    .addEventListener("click", () => {
+      showView("list");
+      renderList();
+    });
+  document
+    .getElementById("setting-autosave-new")
+    .addEventListener("change", async (e) => {
+      settings.autosaveNewOnBlur = e.target.checked;
+      await saveSettings();
+      showToast(settings.autosaveNewOnBlur ? "自動保存をONにしました" : "自動保存をOFFにしました");
+    });
+
   // 詳細 - フォーカスアウトで自動保存
   ["detail-url", "detail-body", "detail-tags"].forEach((id) => {
     document
@@ -320,13 +405,28 @@ function initEvents() {
     .getElementById("btn-save-detail")
     .addEventListener("click", () => saveDetail(false));
   document.getElementById("btn-delete").addEventListener("click", deleteMemo);
+  document
+    .getElementById("btn-open-detail-url")
+    .addEventListener("click", () =>
+      navigateToUrl(document.getElementById("detail-url").value)
+    );
 
-  // 新規
-  document.getElementById("btn-back-new").addEventListener("click", () => {
+  // 新規 - 設定ON時はフォーカスアウトで自動保存
+  ["new-url", "new-body", "new-tags"].forEach((id) => {
+    document.getElementById(id).addEventListener("blur", () => {
+      if (settings.autosaveNewOnBlur) saveNew(true);
+    });
+  });
+
+  document.getElementById("btn-back-new").addEventListener("click", async () => {
+    if (settings.autosaveNewOnBlur) await saveNew(true);
+    newDraftId = null;
     showView("list");
     renderList();
   });
-  document.getElementById("btn-save-new").addEventListener("click", saveNew);
+  document.getElementById("btn-save-new").addEventListener("click", () =>
+    saveNew(false)
+  );
 
   // Cmd+Enter / Ctrl+Enter で保存
   document.addEventListener("keydown", (e) => {
@@ -374,6 +474,26 @@ function dateStamp() {
 
 function escHtml(str) {
   return str.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+}
+
+function normalizeOpenUrl(url) {
+  const trimmed = (url || "").trim();
+  if (!trimmed) return null;
+  try {
+    new URL(trimmed);
+    return trimmed;
+  } catch {
+    return `https://${trimmed}`;
+  }
+}
+
+function navigateToUrl(url) {
+  const target = normalizeOpenUrl(url);
+  if (!target) {
+    showToast("URLを入力してください");
+    return;
+  }
+  chrome.tabs.create({ url: target });
 }
 
 function downloadFile(content, filename, type) {
